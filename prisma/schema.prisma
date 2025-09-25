@@ -1,0 +1,435 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  name                String
+  role                String               @default("EMPLOYEE")
+  password            String
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  activityLogs        ActivityLog[]
+  orders              CustomOrder[]
+  customOrderPayments CustomOrderPayment[]
+  sales               Sale[]
+  systemConfigs       SystemConfig[]
+  workSessions        WorkSession[]
+  schedules           EmployeeSchedule[]
+  schedulesUpdated    EmployeeSchedule[] @relation("ScheduleUpdatedBy")
+}
+
+model Category {
+  id              Int              @id @default(autoincrement())
+  name            String           @unique
+  description     String?
+  isActive        Boolean          @default(true)
+  sortOrder       Int              @default(0)
+  createdBy       String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  categoryChanges CategoryChange[]
+}
+
+model Ingredient {
+  id                 String              @id @default(cuid())
+  name               String              @unique
+  unit               String
+  costPerUnit        Float
+  currentStock       Float               @default(0)
+  minStock           Float               @default(0)
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  productIngredients ProductIngredient[]
+}
+
+model Product {
+  id                 Int                 @id @default(autoincrement())
+  name               String
+  description        String?
+  price              Float
+  cost               Float?
+  stock              Int                 @default(0)
+  category           String
+  type               String
+  barcode            String?             @unique
+  isActive           Boolean             @default(true)
+  isService          Boolean             @default(false)
+  hasStock           Boolean             @default(true)
+  minStock           Int                 @default(5)
+  specialPrice       Float?
+  hasPromotion       Boolean             @default(false)
+  promotionDiscount  Float?
+  promotionStartDate DateTime?
+  promotionEndDate   DateTime?
+  createdBy          String
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  alerts             Alert[]
+  cakeBarOptions     CakeBarOption[]
+  cakeBarOrders      CakeBarOrder[]
+  productChanges     ProductChange[]
+  productIngredients ProductIngredient[]
+  saleItems          SaleItem[]
+  stockMovements     StockMovement[]
+  stockTransfers     StockTransfer[]
+}
+
+model ProductIngredient {
+  id           String     @id @default(cuid())
+  productId    Int
+  ingredientId String
+  quantity     Float
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, ingredientId])
+}
+
+model CakeBarOption {
+  id             String                 @id @default(cuid())
+  productId      Int?
+  optionType     String
+  category       String?
+  name           String
+  description    String?
+  priceAdd       Float                  @default(0)
+  cost           Float?
+  stock          Int?
+  minStock       Int?
+  hasStock       Boolean                @default(false)
+  isActive       Boolean                @default(true)
+  isDefault      Boolean                @default(false)
+  allowMultiple  Boolean                @default(false)
+  displayOrder   Int                    @default(0)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  customizations CakeBarCustomization[]
+  product        Product?               @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Sale {
+  id             String        @id @default(cuid())
+  saleNumber     String        @unique
+  total          Float
+  paymentType    String
+  status         String        @default("COMPLETED")
+  saleType       String
+  cashRegisterId Int?
+  userId         String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  cashRegister   CashRegister? @relation(fields: [cashRegisterId], references: [id])
+  user           User          @relation(fields: [userId], references: [id])
+  saleItems      SaleItem[]
+}
+
+model SaleItem {
+  id        String  @id @default(cuid())
+  saleId    String
+  productId Int
+  quantity  Int
+  unitPrice Float
+  subtotal  Float
+  product   Product @relation(fields: [productId], references: [id])
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+}
+
+model CustomOrder {
+  id             String               @id @default(cuid())
+  orderNumber    String               @unique
+  customerName   String
+  customerPhone  String?
+  customerEmail  String?
+  description    String
+  estimatedPrice Float
+  totalPaid      Float                @default(0)
+  status         String               @default("PENDIENTE")
+  deliveryDate   DateTime
+  notes          String?
+  userId         String
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  user           User                 @relation(fields: [userId], references: [id])
+  payments       CustomOrderPayment[]
+}
+
+model CustomOrderPayment {
+  id            String      @id @default(cuid())
+  customOrderId String
+  amount        Float
+  paymentMethod String
+  paymentType   String
+  description   String?
+  userId        String
+  createdAt     DateTime    @default(now())
+  user          User        @relation(fields: [userId], references: [id])
+  customOrder   CustomOrder @relation(fields: [customOrderId], references: [id], onDelete: Cascade)
+}
+
+model Expense {
+  id             Int          @id @default(autoincrement())
+  description    String
+  amount         Float
+  category       String
+  cashRegisterId Int
+  userId         String
+  receiptNumber  String?
+  supplier       String?
+  createdAt      DateTime     @default(now())
+  cashRegister   CashRegister @relation(fields: [cashRegisterId], references: [id])
+}
+
+model CashRegister {
+  id             Int           @id @default(autoincrement())
+  date           DateTime      @default(now())
+  openingCash    Float         @default(0)
+  closingCash    Float?
+  actualCash     Float?
+  cashDifference Float?
+  totalSales     Float         @default(0)
+  totalExpenses  Float         @default(0)
+  status         String        @default("open")
+  openedBy       String
+  closedBy       String?
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  cashExpenses   CashExpense[]
+  expenses       Expense[]
+  sales          Sale[]
+}
+
+model StockMovement {
+  id            Int      @id @default(autoincrement())
+  productId     Int
+  type          String
+  quantity      Int
+  previousStock Int
+  newStock      Int
+  reason        String?
+  reference     String?
+  userId        String
+  createdAt     DateTime @default(now())
+  product       Product  @relation(fields: [productId], references: [id])
+}
+
+model ProductChange {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  field     String
+  oldValue  String?
+  newValue  String?
+  userId    String
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id])
+}
+
+model CategoryChange {
+  id         Int      @id @default(autoincrement())
+  categoryId Int
+  field      String
+  oldValue   String?
+  newValue   String?
+  userId     String
+  createdAt  DateTime @default(now())
+  category   Category @relation(fields: [categoryId], references: [id])
+}
+
+model StockTransfer {
+  id           Int       @id @default(autoincrement())
+  fromLocation String
+  toLocation   String
+  productId    Int
+  quantity     Int
+  reason       String?
+  status       String    @default("pending")
+  requestedBy  String
+  completedBy  String?
+  requestedAt  DateTime  @default(now())
+  completedAt  DateTime?
+  notes        String?
+  product      Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id          Int      @id @default(autoincrement())
+  type        String
+  title       String
+  description String?
+  filters     String?
+  data        String
+  generatedBy String
+  createdAt   DateTime @default(now())
+}
+
+model Alert {
+  id        Int      @id @default(autoincrement())
+  type      String
+  title     String
+  message   String
+  severity  String
+  isRead    Boolean  @default(false)
+  userId    String?
+  productId Int?
+  data      String?
+  createdAt DateTime @default(now())
+  product   Product? @relation(fields: [productId], references: [id])
+}
+
+model CakeBarOrder {
+  id               Int                    @id @default(autoincrement())
+  orderNumber      String                 @unique
+  productId        Int
+  size             String
+  basePrice        Float
+  totalPrice       Float
+  amountPaid       Float                  @default(0)
+  remainingAmount  Float
+  status           String                 @default("pending")
+  customerName     String?
+  customerPhone    String?
+  notes            String?
+  startTime        DateTime?
+  estimatedReady   DateTime?
+  completedTime    DateTime?
+  assignedWorker   String?
+  completedBy      String?
+  createdBy        String
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  cancellationCode String?
+  cancelledBy      String?
+  cancelledAt      DateTime?
+  customizations   CakeBarCustomization[]
+  product          Product                @relation(fields: [productId], references: [id])
+  payments         CakeBarPayment[]
+}
+
+model CakeBarCustomization {
+  id         Int           @id @default(autoincrement())
+  orderId    Int
+  optionId   String
+  optionType String
+  optionName String
+  quantity   Int           @default(1)
+  unitPrice  Float         @default(0)
+  totalPrice Float         @default(0)
+  option     CakeBarOption @relation(fields: [optionId], references: [id])
+  order      CakeBarOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model CakeBarPayment {
+  id          Int          @id @default(autoincrement())
+  orderId     Int
+  amount      Float
+  paymentType String
+  description String?
+  paidBy      String
+  createdAt   DateTime     @default(now())
+  order       CakeBarOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model WorkSession {
+  id             Int            @id @default(autoincrement())
+  userId         String
+  sessionType    String         @default("work")
+  exitType       String?
+  startTime      DateTime
+  endTime        DateTime?
+  hoursWorked    Float?
+  netHoursWorked Float?
+  isOnTime       Boolean        @default(true)
+  minutesLate    Int            @default(0)
+  dayDate        DateTime
+  weekNumber     Int
+  yearNumber     Int
+  sessionNumber  Int            @default(1)
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  breakSessions  BreakSession[]
+  user           User           @relation(fields: [userId], references: [id])
+
+  @@unique([userId, dayDate, sessionNumber])
+}
+
+model BreakSession {
+  id              Int         @id @default(autoincrement())
+  workSessionId   Int
+  breakType       String      @default("meal")
+  startTime       DateTime
+  endTime         DateTime?
+  duration        Float?
+  isPaid          Boolean     @default(false)
+  isOvertime      Boolean     @default(false)
+  overtimeMinutes Int         @default(0)
+  maxAllowed      Int         @default(60)
+  notes           String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  workSession     WorkSession @relation(fields: [workSessionId], references: [id], onDelete: Cascade)
+}
+
+model CashExpense {
+  id             Int          @id @default(autoincrement())
+  cashRegisterId Int
+  amount         Float
+  category       String
+  description    String
+  receipt        String?
+  authorizedBy   String
+  paidBy         String
+  createdAt      DateTime     @default(now())
+  cashRegister   CashRegister @relation(fields: [cashRegisterId], references: [id])
+}
+
+model ActivityLog {
+  id          Int      @id @default(autoincrement())
+  userId      String
+  action      String
+  module      String
+  description String
+  metadata    String?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model SystemConfig {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  dataType    String
+  description String?
+  category    String
+  updatedBy   String
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [updatedBy], references: [id])
+}
+
+model EmployeeSchedule {
+  id           String   @id @default(cuid())
+  userId       String
+  dayOfWeek    Int      // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+  startTime    String?  // "08:00" formato HH:mm
+  endTime      String?  // "17:00" formato HH:mm
+  isDayOff     Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  updatedBy    String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedByUser User    @relation("ScheduleUpdatedBy", fields: [updatedBy], references: [id])
+
+  @@unique([userId, dayOfWeek])
+}

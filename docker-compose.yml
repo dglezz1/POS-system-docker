@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  bakery-app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/data/production.db
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@company.com}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-ChangeThisPassword123!}
+    volumes:
+      - bakery-data:/app/data
+      - bakery-uploads:/app/public/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/public/system-config"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  bakery-data:
+    driver: local
+  bakery-uploads:
+    driver: local
