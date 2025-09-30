@@ -26,13 +26,21 @@ import {
   Coffee
 } from 'lucide-react';
 
+interface Category {
+  id: string;
+  name: string;
+  color: string;
+  type: 'VITRINA' | 'CAKE_BAR';
+}
+
 interface Product {
   id: number;
   name: string;
   description: string | null;
   price: number;
   stock: number;
-  category: string;
+  categoryId: string | null;
+  category: Category | null;
   type: string;
   barcode: string | null;
   isActive: boolean;
@@ -87,7 +95,7 @@ function ProductsPageContent() {
   const { user } = useAuth();
   const permissions = usePermissions();
   const [products, setProducts] = useState<EditingProduct[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -103,17 +111,23 @@ function ProductsPageContent() {
   const loadData = async () => {
     try {
       const [productsRes, categoriesRes] = await Promise.all([
-        fetch('/api/products'),
-        fetch('/api/categories')
+        fetch('/api/products', { credentials: 'include' }),
+        fetch('/api/categories', { credentials: 'include' })
       ]);
 
-      const productsData = await productsRes.json();
-      const categoriesData = await categoriesRes.json();
+      if (productsRes.ok) {
+        const productsData = await productsRes.json();
+        setProducts(Array.isArray(productsData) ? productsData.map((p: Product) => ({ ...p, isEditing: false, hasChanges: false })) : []);
+      }
 
-      setProducts(productsData.map((p: Product) => ({ ...p, isEditing: false, hasChanges: false })));
-      setCategories(categoriesData.map((c: any) => c.name));
+      if (categoriesRes.ok) {
+        const categoriesData = await categoriesRes.json();
+        setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
+      setProducts([]);
+      setCategories([]);
     } finally {
       setIsLoading(false);
     }
@@ -124,7 +138,7 @@ function ProductsPageContent() {
                          product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.barcode?.includes(searchTerm);
     
-    const matchesCategory = !categoryFilter || product.category === categoryFilter;
+    const matchesCategory = !categoryFilter || product.categoryId === categoryFilter;
     const matchesType = !typeFilter || product.type === typeFilter;
     const matchesService = !serviceFilter || 
                           (serviceFilter === 'products' && !product.isService) ||
@@ -353,7 +367,7 @@ function ProductsPageContent() {
           >
             <option value="">Todas las categorías</option>
             {categories.map(category => (
-              <option key={category} value={category}>{category}</option>
+              <option key={category.id} value={category.id}>{category.name}</option>
             ))}
           </select>
 
@@ -477,7 +491,7 @@ function ProductRow({
   onAddToCakeBar 
 }: {
   product: any;
-  categories: string[];
+  categories: Category[];
   userRole: string;
   onStartEditing: (id: number) => void;
   onCancelEditing: (id: number) => void;
@@ -650,16 +664,28 @@ function ProductRow({
       <td className="px-4 py-4">
         {product.isEditing && canEdit ? (
           <select
-            value={product.category}
-            onChange={(e) => onUpdateField(product.id, 'category', e.target.value)}
+            value={product.categoryId || ''}
+            onChange={(e) => onUpdateField(product.id, 'categoryId', e.target.value)}
             className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
           >
+            <option value="">Sin Categoría</option>
             {categories.map(category => (
-              <option key={category} value={category}>{category}</option>
+              <option key={category.id} value={category.id}>{category.name}</option>
             ))}
           </select>
         ) : (
-          <span className="text-sm text-gray-900">{product.category}</span>
+          product.category ? (
+            <span 
+              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white"
+              style={{ backgroundColor: product.category.color }}
+            >
+              {product.category.name}
+            </span>
+          ) : (
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+              Sin Categoría
+            </span>
+          )
         )}
       </td>
 

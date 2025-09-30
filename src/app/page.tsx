@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link'
-import { ShoppingCart, Package, Users, BarChart3, Cookie, Cake } from 'lucide-react'
+import { ShoppingCart, Package, Users, BarChart3, Cookie, Cake, Store, Settings } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Header from '@/components/Header'
 import { usePermissions } from '@/hooks/usePermissions'
@@ -11,168 +11,193 @@ export default function Home() {
   
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <Header />
-        <div className="container mx-auto px-6 py-12">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-4">
-              Sistema de Gestión de Pastelería
-            </h1>
-            <p className="text-lg text-gray-600 dark:text-gray-300">
-              Gestiona tu pastelería de forma eficiente con nuestro sistema integral
-            </p>
+        
+        {/* Main Content */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+
+          {/* Sección Principal: POS */}
+          <div className="mb-16">
+            <div className="flex items-center mb-8">
+              <div className="bg-red-100 p-2 rounded-lg mr-3">
+                <Store className="w-6 h-6 text-red-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">Punto de Venta</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Vitrina */}
+              <Link href="/pos/vitrina" className="group">
+                <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200 hover:shadow-xl hover:border-red-300 transition-all duration-300 transform group-hover:scale-105">
+                  <div className="text-center">
+                    <div className="bg-red-100 p-4 rounded-2xl w-16 h-16 mx-auto mb-6 group-hover:bg-red-200 transition-colors">
+                      <Cookie className="w-8 h-8 text-red-600 mx-auto" />
+                    </div>
+                    <div className="bg-red-50 px-3 py-1 rounded-full text-xs font-medium text-red-600 mb-4 inline-block">
+                      POS
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-3">Vitrina</h3>
+                    <p className="text-gray-600 leading-relaxed">
+                      Punto de venta para productos tradicionales: galletas, pasteles, panes
+                    </p>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Cake Bar */}
+              <Link href="/pos/cake-bar" className="group">
+                <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200 hover:shadow-xl hover:border-red-300 transition-all duration-300 transform group-hover:scale-105">
+                  <div className="text-center">
+                    <div className="bg-red-100 p-4 rounded-2xl w-16 h-16 mx-auto mb-6 group-hover:bg-red-200 transition-colors">
+                      <Cake className="w-8 h-8 text-red-600 mx-auto" />
+                    </div>
+                    <div className="bg-red-50 px-3 py-1 rounded-full text-xs font-medium text-red-600 mb-4 inline-block">
+                      POS
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-3">Cake Bar</h3>
+                    <p className="text-gray-600 leading-relaxed">
+                      Pasteles personalizados con opciones limitadas y precios predefinidos
+                    </p>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Pedidos Personalizados */}
+              <Link href="/orders/custom" className="group">
+                <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200 hover:shadow-xl hover:border-red-300 transition-all duration-300 transform group-hover:scale-105">
+                  <div className="text-center">
+                    <div className="bg-red-100 p-4 rounded-2xl w-16 h-16 mx-auto mb-6 group-hover:bg-red-200 transition-colors">
+                      <ShoppingCart className="w-8 h-8 text-red-600 mx-auto" />
+                    </div>
+                    <div className="bg-red-50 px-3 py-1 rounded-full text-xs font-medium text-red-600 mb-4 inline-block">
+                      Pedidos
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-3">Pedidos Personalizados</h3>
+                    <p className="text-gray-600 leading-relaxed">
+                      Gestión de pedidos completamente personalizados con cotización dinámica
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Punto de Venta - Vitrina */}
-            <Link href="/pos/vitrina" className="group">
-              <div className="card p-6 hover:shadow-lg transition-all group-hover:scale-105 transform">
-                <div className="flex items-center justify-between mb-4">
-                  <Cookie className="h-8 w-8 text-primary-600" />
-                  <span className="text-sm text-gray-500 dark:text-gray-400">POS</span>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
-                  Vitrina
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Punto de venta para productos tradicionales: galletas, pasteles, panes
-                </p>
+          {/* Sección: Gestión */}
+          <div className="mb-16">
+            <div className="flex items-center mb-8">
+              <div className="bg-blue-100 p-2 rounded-lg mr-3">
+                <Package className="w-6 h-6 text-blue-600" />
               </div>
-            </Link>
-
-            {/* Cake Bar */}
-            <Link href="/pos/cake-bar" className="group">
-              <div className="card p-6 hover:shadow-lg transition-all group-hover:scale-105 transform">
-                <div className="flex items-center justify-between mb-4">
-                  <Cake className="h-8 w-8 text-primary-600" />
-                  <span className="text-sm text-gray-500 dark:text-gray-400">POS</span>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
-                  Cake Bar
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Pasteles personalizados con opciones limitadas y precios predefinidos
-                </p>
-              </div>
-            </Link>
-
-            {/* Pedidos Personalizados */}
-            <Link href="/orders/custom" className="group">
-              <div className="card p-6 hover:shadow-lg transition-all group-hover:scale-105 transform">
-                <div className="flex items-center justify-between mb-4">
-                  <ShoppingCart className="h-8 w-8 text-primary-600" />
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Pedidos</span>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
-                  Pedidos Personalizados
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Gestión de pedidos completamente personalizados con cotización dinámica
-                </p>
-              </div>
-            </Link>
-
-            {/* Inventario - Solo para admin y managers */}
-            {permissions.canViewInventory && (
-              <Link href="/inventory" className="group block lg:col-span-2">
-                <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow">
-                  <div className="flex items-center mb-4">
-                    <Package className="w-8 h-8 text-blue-600 mr-4" />
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600">
-                      Gestión de Inventario
-                    </h2>
+              <h2 className="text-2xl font-bold text-gray-900">Gestión</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Inventario - Solo para admin y managers */}
+              {permissions.canViewInventory && (
+                <Link href="/inventory" className="group">
+                  <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200 hover:shadow-xl hover:border-blue-300 transition-all duration-300 h-full flex flex-col">
+                    <div className="flex items-start mb-6">
+                      <div className="bg-blue-100 p-3 rounded-xl mr-4 flex-shrink-0">
+                        <Package className="w-8 h-8 text-blue-600" />
+                      </div>
+                      <div className="flex-grow">
+                        <div className="bg-blue-50 px-3 py-1 rounded-full text-xs font-medium text-blue-600 mb-3 inline-block">
+                          Gestión
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors mb-3">
+                          Gestión de Inventario
+                        </h3>
+                        <p className="text-gray-600 leading-relaxed">
+                          Administra productos, categorías, ingredientes y stock con control completo
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-gray-600 dark:text-gray-300 group-hover:text-gray-700 dark:group-hover:text-gray-200">
-                    Administra productos, categorías, ingredientes y stock con control completo
-                  </p>
-                </div>
-              </Link>
-            )}
+                </Link>
+              )}
 
-            {/* Panel Administrativo - Solo para administradores */}
-            {permissions.canAccessAdmin && (
-              <Link href="/admin" className="group">
-                <div className="card p-6 hover:shadow-lg transition-all group-hover:scale-105 transform">
-                  <div className="flex items-center justify-between mb-4">
-                    <BarChart3 className="h-8 w-8 text-primary-600" />
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Admin</span>
+              {/* Panel Administrativo - Solo para administradores */}
+              {permissions.canAccessAdmin && (
+                <Link href="/admin" className="group">
+                  <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200 hover:shadow-xl hover:border-orange-300 transition-all duration-300 h-full flex flex-col">
+                    <div className="flex items-start mb-6">
+                      <div className="bg-orange-100 p-3 rounded-xl mr-4 flex-shrink-0">
+                        <BarChart3 className="w-8 h-8 text-orange-600" />
+                      </div>
+                      <div className="flex-grow">
+                        <div className="bg-orange-50 px-3 py-1 rounded-full text-xs font-medium text-orange-600 mb-3 inline-block">
+                          Admin
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 group-hover:text-orange-600 transition-colors mb-3">
+                          Panel Administrativo
+                        </h3>
+                        <p className="text-gray-600 leading-relaxed">
+                          Reportes, cierre de caja y gestión general del negocio
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
-                    Panel Administrativo
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-300">
-                    Reportes, cierre de caja y gestión general del negocio
-                  </p>
-                </div>
-              </Link>
-            )}
-
-            {/* Panel de Empleados */}
-            <Link href="/employee" className="group">
-              <div className="card p-6 hover:shadow-lg transition-all group-hover:scale-105 transform">
-                <div className="flex items-center justify-between mb-4">
-                  <Users className="h-8 w-8 text-green-600" />
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Personal</span>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
-                  Panel de Empleado
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Check-in/out, tiempo de comida y control de jornada personal
-                </p>
-              </div>
-            </Link>
-
-            {/* Gestión de Usuarios - Solo para admin */}
-            {permissions.canAccessAdmin && (
-              <Link href="/admin/employees" className="group">
-                <div className="card p-6 hover:shadow-lg transition-all group-hover:scale-105 transform">
-                  <div className="flex items-center justify-between mb-4">
-                    <Users className="h-8 w-8 text-purple-600" />
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Admin</span>
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
-                    Usuarios
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-300">
-                    Gestión de empleados y permisos del sistema
-                  </p>
-                </div>
-              </Link>
-            )}
+                </Link>
+              )}
+            </div>
           </div>
 
-          <div className="mt-16 text-center">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 max-w-2xl mx-auto">
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
-                Características Principales
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-primary-600 rounded-full mt-2"></div>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    Gestión unificada de caja para todos los tipos de venta
-                  </span>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-primary-600 rounded-full mt-2"></div>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    Sistema de cotización automática para pedidos personalizados
-                  </span>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-primary-600 rounded-full mt-2"></div>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    Control de inventario en tiempo real
-                  </span>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-primary-600 rounded-full mt-2"></div>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    Reportes detallados y cierre de caja automático
-                  </span>
-                </div>
+          {/* Sección: Personal */}
+          <div className="mb-16">
+            <div className="flex items-center mb-8">
+              <div className="bg-green-100 p-2 rounded-lg mr-3">
+                <Users className="w-6 h-6 text-green-600" />
               </div>
+              <h2 className="text-2xl font-bold text-gray-900">Personal</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Panel de Empleados */}
+              <Link href="/employee" className="group">
+                <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200 hover:shadow-xl hover:border-green-300 transition-all duration-300 h-full flex flex-col">
+                  <div className="flex items-start mb-6">
+                    <div className="bg-green-100 p-3 rounded-xl mr-4 flex-shrink-0">
+                      <Users className="w-8 h-8 text-green-600" />
+                    </div>
+                    <div className="flex-grow">
+                      <div className="bg-green-50 px-3 py-1 rounded-full text-xs font-medium text-green-600 mb-3 inline-block">
+                        Personal
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 group-hover:text-green-600 transition-colors mb-3">
+                        Panel de Empleado
+                      </h3>
+                      <p className="text-gray-600 leading-relaxed">
+                        Check-in/out, tiempo de comida y control de jornada personal
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Gestión de Usuarios - Solo para admin */}
+              {permissions.canAccessAdmin && (
+                <Link href="/admin/employees" className="group">
+                  <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200 hover:shadow-xl hover:border-purple-300 transition-all duration-300 h-full flex flex-col">
+                    <div className="flex items-start mb-6">
+                      <div className="bg-purple-100 p-3 rounded-xl mr-4 flex-shrink-0">
+                        <Settings className="w-8 h-8 text-purple-600" />
+                      </div>
+                      <div className="flex-grow">
+                        <div className="bg-purple-50 px-3 py-1 rounded-full text-xs font-medium text-purple-600 mb-3 inline-block">
+                          Admin
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 group-hover:text-purple-600 transition-colors mb-3">
+                          Usuarios
+                        </h3>
+                        <p className="text-gray-600 leading-relaxed">
+                          Gestión de empleados y permisos del sistema
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              )}
             </div>
           </div>
         </div>

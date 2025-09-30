@@ -33,29 +33,38 @@ export async function GET(request: NextRequest) {
 
     const schedules = await prisma.employeeSchedule.findMany({
       where: { userId: targetUserId },
-      orderBy: { dayOfWeek: 'asc' },
+      orderBy: { date: 'asc' },
       include: {
-        updatedByUser: {
+        updater: {
           select: { name: true, email: true }
         }
       }
     })
 
-    // Si no hay horarios, crear horarios por defecto (8:00-17:00, lunes a viernes)
+    // Si no hay horarios, crear horarios por defecto para la próxima semana (8:00-17:00, lunes a viernes)
     if (schedules.length === 0) {
       const defaultSchedules = []
-      for (let day = 0; day <= 6; day++) {
+      const today = new Date()
+      const nextWeekStart = new Date(today)
+      nextWeekStart.setDate(today.getDate() + (7 - today.getDay())) // Próximo lunes
+      
+      for (let day = 0; day < 7; day++) {
+        const scheduleDate = new Date(nextWeekStart)
+        scheduleDate.setDate(nextWeekStart.getDate() + day)
+        
+        const isWeekend = day === 0 || day === 6 // Domingo o sábado
+        
         const schedule = await prisma.employeeSchedule.create({
           data: {
             userId: targetUserId,
-            dayOfWeek: day,
-            startTime: day >= 1 && day <= 5 ? '08:00' : null, // Lunes a viernes
-            endTime: day >= 1 && day <= 5 ? '17:00' : null,
-            isDayOff: day === 0 || day === 6, // Sábado y domingo libres
+            date: scheduleDate,
+            startTime: isWeekend ? '00:00' : '08:00',
+            endTime: isWeekend ? '00:00' : '17:00',
+            notes: isWeekend ? 'Día libre' : null,
             updatedBy: decoded.userId
           },
           include: {
-            updatedByUser: {
+            updater: {
               select: { name: true, email: true }
             }
           }
@@ -103,66 +112,66 @@ export async function POST(request: NextRequest) {
     }
 
     // Validar datos
-    if (!Array.isArray(schedules) || schedules.length !== 7) {
+    if (!Array.isArray(schedules) || schedules.length === 0) {
       return NextResponse.json(
-        { error: 'Debe proporcionar horarios para los 7 días de la semana' },
+        { error: 'Debe proporcionar al menos un horario' },
         { status: 400 }
       )
     }
 
     // Validar formato de horarios
     for (const schedule of schedules) {
-      if (schedule.dayOfWeek < 0 || schedule.dayOfWeek > 6) {
+      if (!schedule.date) {
         return NextResponse.json(
-          { error: 'Día de la semana inválido' },
+          { error: 'Fecha es requerida para cada horario' },
           { status: 400 }
         )
       }
       
-      if (!schedule.isDayOff) {
-        if (!schedule.startTime || !schedule.endTime) {
-          return NextResponse.json(
-            { error: 'Hora de inicio y fin son requeridas para días laborales' },
-            { status: 400 }
-          )
-        }
-        
-        if (schedule.startTime >= schedule.endTime) {
-          return NextResponse.json(
-            { error: 'La hora de inicio debe ser anterior a la hora de fin' },
-            { status: 400 }
-          )
-        }
+      if (!schedule.startTime || !schedule.endTime) {
+        return NextResponse.json(
+          { error: 'Hora de inicio y fin son requeridas' },
+          { status: 400 }
+        )
+      }
+      
+      if (schedule.startTime !== '00:00' && schedule.endTime !== '00:00' && schedule.startTime >= schedule.endTime) {
+        return NextResponse.json(
+          { error: 'La hora de inicio debe ser anterior a la hora de fin' },
+          { status: 400 }
+        )
       }
     }
 
     // Actualizar horarios
     const updatedSchedules = []
     for (const schedule of schedules) {
+      const scheduleDate = new Date(schedule.date)
+      
       const updatedSchedule = await prisma.employeeSchedule.upsert({
         where: {
-          userId_dayOfWeek: {
+          userId_date: {
             userId: userId,
-            dayOfWeek: schedule.dayOfWeek
+            date: scheduleDate
           }
         },
         create: {
           userId: userId,
-          dayOfWeek: schedule.dayOfWeek,
-          startTime: schedule.isDayOff ? null : schedule.startTime,
-          endTime: schedule.isDayOff ? null : schedule.endTime,
-          isDayOff: schedule.isDayOff,
+          date: scheduleDate,
+          startTime: schedule.startTime || '00:00',
+          endTime: schedule.endTime || '00:00',
+          notes: schedule.notes,
           updatedBy: decoded.userId
         },
         update: {
-          startTime: schedule.isDayOff ? null : schedule.startTime,
-          endTime: schedule.isDayOff ? null : schedule.endTime,
-          isDayOff: schedule.isDayOff,
+          startTime: schedule.startTime || '00:00',
+          endTime: schedule.endTime || '00:00',
+          notes: schedule.notes,
           updatedBy: decoded.userId,
           updatedAt: new Date()
         },
         include: {
-          updatedByUser: {
+          updater: {
             select: { name: true, email: true }
           }
         }

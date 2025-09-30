@@ -27,6 +27,7 @@ COPY prisma/ ./prisma/
 COPY src/ ./src/
 COPY public/ ./public/
 COPY setup-system-config.js ./
+COPY setup-default-credentials.js ./
 
 # Generar Prisma Client
 RUN npx prisma generate
@@ -62,6 +63,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Copiar esquema de Prisma y configuración
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/setup-system-config.js ./
+COPY --from=builder --chown=nextjs:nodejs /app/setup-default-credentials.js ./
 
 # Crear directorio para uploads con permisos
 RUN mkdir -p ./public/uploads && chown -R nextjs:nodejs ./public/uploads
@@ -81,6 +83,10 @@ echo "📊 Configurando base de datos..."
 
 # Ejecutar migraciones de Prisma
 npx prisma migrate deploy
+
+# Configurar credenciales por defecto
+echo "🔐 Configurando credenciales por defecto..."
+node setup-default-credentials.js
 
 # Configurar sistema inicial
 echo "⚙️ Configurando sistema inicial..."

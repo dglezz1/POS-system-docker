@@ -27,15 +27,21 @@ model User {
 }
 
 model Category {
-  id              Int              @id @default(autoincrement())
-  name            String           @unique
-  description     String?
+  id              String           @id @default(cuid())
+  name            String
+  color           String           @default("#3B82F6")
+  type            String           @default("VITRINA")
   isActive        Boolean          @default(true)
   sortOrder       Int              @default(0)
-  createdBy       String
+  createdBy       String?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+  
+  // Relación con productos
+  products        Product[]
   categoryChanges CategoryChange[]
+  
+  @@unique([name, type])
 }
 
 model Ingredient {
@@ -58,8 +64,9 @@ model Product {
   price              Float
   cost               Float?
   stock              Int                 @default(0)
-  category           String
-  type               String
+  category           String              // Mantener temporalmente para migración
+  categoryId         String?             // Nueva relación con Category
+  type               String              @default("VITRINA")
   barcode            String?             @unique
   isActive           Boolean             @default(true)
   isService          Boolean             @default(false)
@@ -73,6 +80,9 @@ model Product {
   createdBy          String
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
+  
+  // Relación con Category
+  categoryModel      Category?           @relation(fields: [categoryId], references: [id])
   alerts             Alert[]
   cakeBarOptions     CakeBarOption[]
   cakeBarOrders      CakeBarOrder[]
@@ -235,7 +245,7 @@ model ProductChange {
 
 model CategoryChange {
   id         Int      @id @default(autoincrement())
-  categoryId Int
+  categoryId String
   field      String
   oldValue   String?
   newValue   String?
@@ -418,18 +428,20 @@ model SystemConfig {
 }
 
 model EmployeeSchedule {
-  id           String   @id @default(cuid())
-  userId       String
-  dayOfWeek    Int      // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
-  startTime    String?  // "08:00" formato HH:mm
-  endTime      String?  // "17:00" formato HH:mm
-  isDayOff     Boolean  @default(false)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  updatedBy    String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  updatedByUser User    @relation("ScheduleUpdatedBy", fields: [updatedBy], references: [id])
-
-  @@unique([userId, dayOfWeek])
+  id        String   @id @default(cuid())
+  userId    String
+  date      DateTime
+  startTime String
+  endTime   String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+  
+  user      User @relation(fields: [userId], references: [id])
+  updater   User? @relation("ScheduleUpdatedBy", fields: [updatedBy], references: [id])
+  
+  @@unique([userId, date])
 }
+
+

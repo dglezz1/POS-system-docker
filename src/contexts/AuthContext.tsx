@@ -26,7 +26,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch('/api/auth/me');
+      const response = await fetch('/api/auth/me', {
+        credentials: 'include'
+      });
       const data = await response.json();
       
       if (data.authenticated && data.user) {
@@ -49,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ email, password }),
       });
 
@@ -71,6 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await fetch('/api/auth/logout', {
         method: 'POST',
+        credentials: 'include'
       });
     } catch (error) {
       console.error('Logout error:', error);

@@ -105,6 +105,7 @@ export default function AdminDashboard() {
 function AdminDashboardContent() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [period, setPeriod] = useState('today')
 
   useEffect(() => {
@@ -114,13 +115,21 @@ function AdminDashboardContent() {
   const loadDashboardData = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/admin/dashboard?period=${period}`)
+      setError(null)
+      const response = await fetch(`/api/admin/dashboard?period=${period}`, {
+        credentials: 'include'
+      })
+      
       if (response.ok) {
         const data = await response.json()
         setDashboardData(data)
+      } else {
+        const errorText = await response.text()
+        setError(`Error ${response.status}: ${errorText || 'No se pudo cargar el dashboard'}`)
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error)
+      setError('Error de conexión al cargar el dashboard')
     } finally {
       setLoading(false)
     }
@@ -162,15 +171,27 @@ function AdminDashboardContent() {
     )
   }
 
-  if (!dashboardData) {
+  if (error || (!loading && !dashboardData)) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">Error al cargar los datos</p>
+          <p className="text-gray-600 mb-4">
+            {error || 'Error al cargar los datos del dashboard'}
+          </p>
+          <button
+            onClick={() => loadDashboardData()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Reintentar
+          </button>
         </div>
       </div>
     )
+  }
+
+  if (!dashboardData) {
+    return null // Esta condición no debería alcanzarse debido al check anterior
   }
 
   const totalSalesAllSegments = dashboardData.sales.total
@@ -224,139 +245,184 @@ function AdminDashboardContent() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto p-6">
-        {/* Período seleccionado */}
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Resumen de ventas - {getPeriodLabel(period)}
-          </h2>
-          <p className="text-gray-600">
-            Del {formatDate(dashboardData.dateRange.start)} al {formatDate(dashboardData.dateRange.end)}
-          </p>
+        {/* Header del período */}
+        <div className="mb-8">
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Dashboard Ejecutivo - {getPeriodLabel(period)}
+                </h2>
+                <p className="text-gray-600 flex items-center">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Del {formatDate(dashboardData.dateRange.start)} al {formatDate(dashboardData.dateRange.end)}
+                </p>
+              </div>
+              <Link 
+                href="/admin/system-config"
+                className="flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Configuración
+              </Link>
+            </div>
+          </div>
         </div>
 
         {/* Métricas principales */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Total General */}
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+          <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100">Total General</p>
-                <p className="text-3xl font-bold">{formatCurrency(totalSalesAllSegments + dashboardData.sales.customOrders.total)}</p>
-                <p className="text-blue-100 text-sm mt-1">
+                <div className="flex items-center mb-2">
+                  <DollarSign className="w-5 h-5 mr-2 text-blue-100" />
+                  <p className="text-blue-100 font-medium">Total General</p>
+                </div>
+                <p className="text-3xl font-bold mb-1">{formatCurrency(totalSalesAllSegments + dashboardData.sales.customOrders.total)}</p>
+                <p className="text-blue-100 text-sm">
                   {dashboardData.sales.count + dashboardData.sales.customOrders.count} transacciones
                 </p>
               </div>
-              <DollarSign className="w-12 h-12 text-blue-200" />
+              <div className="bg-white bg-opacity-20 rounded-full p-3">
+                <BarChart3 className="w-8 h-8 text-white" />
+              </div>
             </div>
           </div>
 
           {/* Vitrina */}
-          <div className="bg-white rounded-lg shadow-lg p-6 border-l-4 border-green-500">
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600">Vitrina</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <div className="flex items-center mb-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                  <p className="text-gray-600 font-medium">Vitrina</p>
+                </div>
+                <p className="text-2xl font-bold text-gray-900 mb-1">
                   {formatCurrency(dashboardData.sales.bySegment.find(s => s.type === 'VITRINA')?.total || 0)}
                 </p>
-                <p className="text-gray-500 text-sm mt-1">
+                <p className="text-gray-500 text-sm">
                   {dashboardData.sales.bySegment.find(s => s.type === 'VITRINA')?.count || 0} ventas
                 </p>
               </div>
-              <Cookie className="w-10 h-10 text-green-500" />
+              <div className="bg-green-100 rounded-full p-3">
+                <Cookie className="w-8 h-8 text-green-600" />
+              </div>
             </div>
           </div>
 
           {/* Cake Bar */}
-          <div className="bg-white rounded-lg shadow-lg p-6 border-l-4 border-orange-500">
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600">Cake Bar</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <div className="flex items-center mb-2">
+                  <div className="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
+                  <p className="text-gray-600 font-medium">Cake Bar</p>
+                </div>
+                <p className="text-2xl font-bold text-gray-900 mb-1">
                   {formatCurrency(dashboardData.sales.bySegment.find(s => s.type === 'CAKE_BAR')?.total || 0)}
                 </p>
-                <p className="text-gray-500 text-sm mt-1">
+                <p className="text-gray-500 text-sm">
                   {dashboardData.sales.bySegment.find(s => s.type === 'CAKE_BAR')?.count || 0} órdenes
                 </p>
               </div>
-              <Cake className="w-10 h-10 text-orange-500" />
+              <div className="bg-orange-100 rounded-full p-3">
+                <Cake className="w-8 h-8 text-orange-600" />
+              </div>
             </div>
           </div>
 
           {/* Pedidos Personalizados */}
-          <div className="bg-white rounded-lg shadow-lg p-6 border-l-4 border-purple-500">
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600">Pedidos Custom</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <div className="flex items-center mb-2">
+                  <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
+                  <p className="text-gray-600 font-medium">Pedidos Custom</p>
+                </div>
+                <p className="text-2xl font-bold text-gray-900 mb-1">
                   {formatCurrency(dashboardData.sales.customOrders.total)}
                 </p>
-                <p className="text-gray-500 text-sm mt-1">
+                <p className="text-gray-500 text-sm">
                   {dashboardData.sales.customOrders.count} pagos
                 </p>
               </div>
-              <ShoppingCart className="w-10 h-10 text-purple-500" />
+              <div className="bg-purple-100 rounded-full p-3">
+                <ShoppingCart className="w-8 h-8 text-purple-600" />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Segunda fila de métricas */}
+        {/* Métricas operacionales */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {/* Promedio por transacción */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600">Promedio por venta</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <div className="flex items-center mb-2">
+                  <Calculator className="w-5 h-5 mr-2 text-blue-500" />
+                  <p className="text-gray-600 font-medium">Ticket Promedio</p>
+                </div>
+                <p className="text-2xl font-bold text-gray-900 mb-1">
                   {formatCurrency(dashboardData.sales.average)}
                 </p>
-                <p className="text-gray-500 text-sm mt-1">
-                  Ticket promedio
-                </p>
+                <p className="text-gray-500 text-sm">Por transacción</p>
               </div>
-              <Calculator className="w-10 h-10 text-blue-500" />
+              <div className="bg-blue-100 rounded-full p-3">
+                <TrendingUp className="w-8 h-8 text-blue-600" />
+              </div>
             </div>
           </div>
 
           {/* Empleados activos */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600">Empleados activos</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <div className="flex items-center mb-2">
+                  <Users className="w-5 h-5 mr-2 text-indigo-500" />
+                  <p className="text-gray-600 font-medium">Personal Activo</p>
+                </div>
+                <p className="text-2xl font-bold text-gray-900 mb-1">
                   {dashboardData.operations.activeEmployees.length}
                 </p>
-                <p className="text-gray-500 text-sm mt-1">
-                  Trabajando ahora
-                </p>
+                <p className="text-gray-500 text-sm">Trabajando ahora</p>
               </div>
-              <Users className="w-10 h-10 text-indigo-500" />
+              <div className="bg-indigo-100 rounded-full p-3">
+                <Clock className="w-8 h-8 text-indigo-600" />
+              </div>
             </div>
           </div>
 
           {/* Alertas del sistema */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600">Alertas</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <div className="flex items-center mb-2">
+                  <Bell className="w-5 h-5 mr-2 text-red-500" />
+                  <p className="text-gray-600 font-medium">Alertas Sistema</p>
+                </div>
+                <p className="text-2xl font-bold text-gray-900 mb-1">
                   {dashboardData.operations.systemAlerts}
                 </p>
-                <p className="text-gray-500 text-sm mt-1">
-                  Sin leer
-                </p>
+                <p className="text-gray-500 text-sm">Pendientes</p>
               </div>
-              <Bell className="w-10 h-10 text-red-500" />
+              <div className="bg-red-100 rounded-full p-3">
+                <AlertTriangle className="w-8 h-8 text-red-600" />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Gráficos y análisis */}
+        {/* Análisis detallado */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Métodos de pago */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <PieChart className="w-5 h-5 mr-2 text-blue-500" />
-              Ventas por método de pago
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+              <div className="bg-blue-100 rounded-lg p-2 mr-3">
+                <PieChart className="w-5 h-5 text-blue-600" />
+              </div>
+              Métodos de Pago
             </h3>
             <div className="space-y-4">
               {dashboardData.sales.byPayment.map((payment) => (
@@ -380,10 +446,12 @@ function AdminDashboardContent() {
           </div>
 
           {/* Productos más vendidos */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <TrendingUp className="w-5 h-5 mr-2 text-green-500" />
-              Productos más vendidos
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+              <div className="bg-green-100 rounded-lg p-2 mr-3">
+                <TrendingUp className="w-5 h-5 text-green-600" />
+              </div>
+              Top Productos
             </h3>
             <div className="space-y-3">
               {dashboardData.products.topSelling
@@ -410,11 +478,13 @@ function AdminDashboardContent() {
           </div>
         </div>
 
-        {/* Tendencia de ventas (últimos 30 días) */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <Activity className="w-5 h-5 mr-2 text-purple-500" />
-            Tendencia de ventas (últimos 30 días)
+        {/* Tendencia de ventas */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+            <div className="bg-purple-100 rounded-lg p-2 mr-3">
+              <Activity className="w-5 h-5 text-purple-600" />
+            </div>
+            Tendencia de Ventas (Últimos 14 días)
           </h3>
           <div className="overflow-x-auto">
             <div className="flex space-x-2 pb-4">
@@ -438,13 +508,15 @@ function AdminDashboardContent() {
           </div>
         </div>
 
-        {/* Estado de operaciones */}
+        {/* Estado operacional */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Estado de caja */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <DollarSign className="w-5 h-5 mr-2 text-green-500" />
-              Estado de caja
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+              <div className="bg-green-100 rounded-lg p-2 mr-3">
+                <DollarSign className="w-5 h-5 text-green-600" />
+              </div>
+              Control de Caja
             </h3>
             {dashboardData.cash.currentRegister ? (
               <div className="space-y-3">
@@ -480,25 +552,31 @@ function AdminDashboardContent() {
           </div>
 
           {/* Órdenes de Cake Bar activas */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Cake className="w-5 h-5 mr-2 text-orange-500" />
-              Cake Bar - Órdenes activas
+          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+              <div className="bg-orange-100 rounded-lg p-2 mr-3">
+                <Cake className="w-5 h-5 text-orange-600" />
+              </div>
+              Órdenes Cake Bar
             </h3>
             <div className="text-center">
-              <p className="text-3xl font-bold text-orange-500 mb-2">
-                {dashboardData.operations.activeCakeBarOrders}
-              </p>
-              <p className="text-gray-600">órdenes en proceso</p>
+              <div className="bg-orange-50 rounded-lg p-6">
+                <p className="text-4xl font-bold text-orange-600 mb-2">
+                  {dashboardData.operations.activeCakeBarOrders}
+                </p>
+                <p className="text-gray-600 font-medium">En proceso</p>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Panel de gestión rápida */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-            <Timer className="w-5 h-5 mr-2 text-blue-500" />
-            Panel de Gestión
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+            <div className="bg-blue-100 rounded-lg p-2 mr-3">
+              <Timer className="w-5 h-5 text-blue-600" />
+            </div>
+            Acciones Rápidas
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <Link 

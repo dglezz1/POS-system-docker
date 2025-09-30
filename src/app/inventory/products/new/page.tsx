@@ -19,8 +19,10 @@ import {
 } from 'lucide-react';
 
 interface Category {
-  id: number;
+  id: string;
   name: string;
+  color: string;
+  type: 'VITRINA' | 'CAKE_BAR';
 }
 
 const userRole = 'ADMIN'; // Temporal - esto vendría del contexto de autenticación
@@ -66,7 +68,7 @@ function NewProductContent() {
     description: '',
     price: '',
     stock: '0',
-    category: '',
+    categoryId: '',
     type: 'VITRINA',
     barcode: '',
     isService: false,
@@ -86,16 +88,20 @@ function NewProductContent() {
     loadCategories();
   }, [router]);
 
+  // Recargar categorías cuando cambia el tipo de producto
+  useEffect(() => {
+    loadCategories();
+  }, [formData.type]);
+
   const loadCategories = async () => {
     try {
-      const response = await fetch('/api/categories?active=true');
+      const response = await fetch('/api/categories', {
+        credentials: 'include'
+      });
       const data = await response.json();
-      setCategories(data);
-      
-      // Seleccionar la primera categoría por defecto
-      if (data.length > 0) {
-        setFormData(prev => ({ ...prev, category: data[0].name }));
-      }
+      // Filtrar categorías según el tipo de producto
+      const filteredCategories = data.filter((cat: Category) => cat.type === formData.type);
+      setCategories(filteredCategories);
     } catch (error) {
       console.error('Error loading categories:', error);
     }
@@ -117,7 +123,7 @@ function NewProductContent() {
       newErrors.price = 'El precio debe ser mayor a 0';
     }
 
-    if (!formData.category) {
+    if (!formData.categoryId) {
       newErrors.category = 'La categoría es requerida';
     }
 
@@ -284,15 +290,15 @@ function NewProductContent() {
                 Categoría *
               </label>
               <select
-                value={formData.category}
-                onChange={(e) => handleInputChange('category', e.target.value)}
+                value={formData.categoryId}
+                onChange={(e) => handleInputChange('categoryId', e.target.value)}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.category ? 'border-red-500' : 'border-gray-300'
+                  errors.categoryId ? 'border-red-500' : 'border-gray-300'
                 }`}
               >
-                <option value="">Seleccionar categoría</option>
+                <option value="">Sin Categoría</option>
                 {categories.map(category => (
-                  <option key={category.id} value={category.name}>
+                  <option key={category.id} value={category.id}>
                     {category.name}
                   </option>
                 ))}

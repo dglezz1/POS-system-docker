@@ -35,7 +35,9 @@ export function SystemConfigProvider({ children }: { children: ReactNode }) {
 
   const loadConfig = async () => {
     try {
-      const response = await fetch('/api/admin/system-config');
+      const response = await fetch('/api/admin/system-config', {
+        credentials: 'include'
+      });
       if (response.ok) {
         const data = await response.json();
         setConfig(data);

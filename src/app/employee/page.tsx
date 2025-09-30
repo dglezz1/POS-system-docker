@@ -137,8 +137,11 @@ function EmployeePanelContent() {
   }
 
   const getTodaySchedule = () => {
-    const today = new Date().getDay() // 0 = Domingo, 1 = Lunes, ...
-    return schedules.find(s => s.dayOfWeek === today)
+    const today = new Date()
+    return schedules.find(s => {
+      const scheduleDate = new Date(s.date)
+      return scheduleDate.toDateString() === today.toDateString()
+    })
   }
 
   const handleCheckIn = async () => {
@@ -565,7 +568,7 @@ function EmployeePanelContent() {
                           Horario de hoy
                         </span>
                       </div>
-                      {todaySchedule.isDayOff ? (
+                      {(todaySchedule.startTime === '00:00' && todaySchedule.endTime === '00:00') ? (
                         <span className="text-indigo-900 font-bold">Día libre</span>
                       ) : (
                         <span className="text-indigo-900 font-bold">
@@ -639,15 +642,22 @@ function EmployeePanelContent() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {/* Horario semanal */}
+                  {/* Horarios por fecha */}
                   {schedules.map((schedule) => {
-                    const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
-                    const today = new Date().getDay()
-                    const isToday = schedule.dayOfWeek === today
+                    const scheduleDate = new Date(schedule.date)
+                    const today = new Date()
+                    const isToday = scheduleDate.toDateString() === today.toDateString()
+                    const dayName = scheduleDate.toLocaleDateString('es-ES', { weekday: 'long' })
+                    const formattedDate = scheduleDate.toLocaleDateString('es-ES', { 
+                      day: 'numeric', 
+                      month: 'short' 
+                    })
+                    
+                    const isDayOff = schedule.startTime === '00:00' && schedule.endTime === '00:00'
                     
                     return (
                       <div 
-                        key={schedule.dayOfWeek} 
+                        key={schedule.id || schedule.date} 
                         className={`p-4 rounded-lg border-2 ${
                           isToday 
                             ? 'border-blue-200 bg-blue-50' 
@@ -656,8 +666,8 @@ function EmployeePanelContent() {
                       >
                         <div className="flex justify-between items-center">
                           <div className="flex items-center">
-                            <span className={`font-semibold ${isToday ? 'text-blue-900' : 'text-gray-900'}`}>
-                              {dayNames[schedule.dayOfWeek]}
+                            <span className={`font-semibold capitalize ${isToday ? 'text-blue-900' : 'text-gray-900'}`}>
+                              {dayName} - {formattedDate}
                               {isToday && (
                                 <span className="ml-2 px-2 py-1 text-xs bg-blue-200 text-blue-800 rounded-full">
                                   Hoy
@@ -667,7 +677,7 @@ function EmployeePanelContent() {
                           </div>
                           
                           <div className={`text-sm ${isToday ? 'text-blue-800' : 'text-gray-700'}`}>
-                            {schedule.isDayOff ? (
+                            {isDayOff ? (
                               <span className="flex items-center">
                                 <Eye className="w-4 h-4 mr-1" />
                                 Día libre
@@ -680,7 +690,7 @@ function EmployeePanelContent() {
                           </div>
                         </div>
                         
-                        {isToday && !schedule.isDayOff && (
+                        {isToday && !isDayOff && (
                           <div className="mt-2 text-xs text-blue-700">
                             <Clock className="w-3 h-3 inline mr-1" />
                             Tu horario para hoy

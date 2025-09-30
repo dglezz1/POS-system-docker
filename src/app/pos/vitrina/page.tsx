@@ -24,6 +24,13 @@ import {
 } from 'lucide-react'
 import { usePermissions, PermissionGuard } from '@/hooks/usePermissions'
 
+interface Category {
+  id: string
+  name: string
+  color: string
+  type: 'VITRINA' | 'CAKE_BAR'
+}
+
 interface Product {
   id: string
   name: string
@@ -33,7 +40,8 @@ interface Product {
   minStock: number
   barcode: string | null
   isService: boolean
-  category: { name: string }
+  category: Category | null
+  categoryId: string | null
 }
 
 interface CartItem {
@@ -99,8 +107,8 @@ function VitrinaPOSContent() {
   const fetchData = async () => {
     try {
       const [productsRes, categoriesRes] = await Promise.all([
-        fetch('/api/products?type=VITRINA'),
-        fetch('/api/categories')
+        fetch('/api/products?type=VITRINA', { credentials: 'include' }),
+        fetch('/api/categories?type=VITRINA', { credentials: 'include' })
       ])
 
       if (productsRes.ok) {
@@ -118,7 +126,9 @@ function VitrinaPOSContent() {
 
       if (categoriesRes.ok) {
         const categoriesData = await categoriesRes.json()
-        setCategories(categoriesData)
+        // Filtrar solo categorías de VITRINA
+        const vitrinaCategories = categoriesData.filter((cat: Category) => cat.type === 'VITRINA')
+        setCategories(vitrinaCategories)
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -134,7 +144,7 @@ function VitrinaPOSContent() {
   const getFilteredProducts = () => {
     return products.filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesCategory = !selectedCategory || product.category.name === selectedCategory
+      const matchesCategory = !selectedCategory || product.category?.name === selectedCategory
       return matchesSearch && matchesCategory
     })
   }
@@ -368,31 +378,20 @@ function VitrinaPOSContent() {
           </div>
         </div>
 
-        {/* Categories */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          <button
-            onClick={() => setSelectedCategory('')}
-            className={`px-3 py-1 rounded-full text-sm ${
-              !selectedCategory 
-                ? 'bg-primary-600 text-white' 
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
+        {/* Category Filter */}
+        <div className="mb-6">
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
           >
-            Todas
-          </button>
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              onClick={() => setSelectedCategory(category.name)}
-              className={`px-3 py-1 rounded-full text-sm ${
-                selectedCategory === category.name 
-                  ? 'bg-primary-600 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              {category.name}
-            </button>
-          ))}
+            <option value="">🏷️ Todas las categorías</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.name}>
+                {category.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Products Grid */}
@@ -412,6 +411,15 @@ function VitrinaPOSContent() {
                     {product.stock}
                   </div>
                 </div>
+                
+                {product.category && (
+                  <div 
+                    className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white mb-2"
+                    style={{ backgroundColor: product.category.color }}
+                  >
+                    {product.category.name}
+                  </div>
+                )}
                 
                 {product.description && (
                   <p className="text-sm text-gray-600 mb-2 line-clamp-2">

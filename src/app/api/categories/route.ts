@@ -1,86 +1,106 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { getAuthenticatedUser, requireAdmin } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const active = searchParams.get('active');
+    const user = await getAuthenticatedUser()
+    if (!user) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
 
-    const whereClause: any = {};
+    const { searchParams } = new URL(request.url)
+    const type = searchParams.get('type') as 'VITRINA' | 'CAKE_BAR' | null
+    const active = searchParams.get('active')
+
+    const whereClause: any = {
+      isActive: active === 'false' ? false : true,
+    }
     
-    if (active !== null && active !== undefined) {
-      whereClause.isActive = active === 'true';
+    if (type && ['VITRINA', 'CAKE_BAR'].includes(type)) {
+      whereClause.type = type
     }
 
     const categories = await prisma.category.findMany({
       where: whereClause,
+      include: {
+        _count: true
+      },
       orderBy: [
         { sortOrder: 'asc' },
         { name: 'asc' }
       ],
-    });
+    })
 
-    return NextResponse.json(categories);
+    return NextResponse.json(categories)
   } catch (error) {
-    console.error('Error fetching categories:', error);
+    console.error('Error fetching categories:', error)
     return NextResponse.json(
-      { error: 'Error al obtener categorías' },
+      { error: 'Error interno del servidor' },
       { status: 500 }
-    );
+    )
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const {
-      name,
-      description,
-      sortOrder = 0,
-      createdBy = 'system' // En producción esto vendría del usuario autenticado
-    } = body;
-
-    // Validaciones
-    if (!name) {
-      return NextResponse.json(
-        { error: 'El nombre es requerido' },
-        { status: 400 }
-      );
+    const user = await getAuthenticatedUser()
+    if (!requireAdmin(user)) {
+      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
     }
 
-    // Verificar que el nombre sea único
-    const existingCategory = await prisma.category.findUnique({
-      where: { name }
-    });
+    const { name, color, type } = await request.json()
+
+    if (!name || !type) {
+      return NextResponse.json(
+        { error: 'Nombre y tipo son requeridos' },
+        { status: 400 }
+      )
+    }
+
+    if (!['VITRINA', 'CAKE_BAR'].includes(type)) {
+      return NextResponse.json(
+        { error: 'Tipo debe ser VITRINA o CAKE_BAR' },
+        { status: 400 }
+      )
+    }
+
+    // Verificar que no existe una categoría con el mismo nombre y tipo
+    const existingCategory = await prisma.category.findFirst({
+      where: {
+        name: name.trim(),
+        type,
+        isActive: true,
+      }
+    })
 
     if (existingCategory) {
       return NextResponse.json(
-        { error: 'Ya existe una categoría con ese nombre' },
-        { status: 400 }
-      );
+        { error: 'Ya existe una categoría con ese nombre para este tipo' },
+        { status: 409 }
+      )
     }
+
+    // Obtener el siguiente sortOrder
+    const lastCategory = await prisma.category.findFirst({
+      where: { type, isActive: true },
+      orderBy: { sortOrder: 'desc' }
+    })
+    const nextSortOrder = (lastCategory?.sortOrder || 0) + 1
 
     const category = await prisma.category.create({
       data: {
-        name,
-        description,
-        sortOrder: parseInt(sortOrder),
-        createdBy,
+        name: name.trim(),
+        color: color || '#3B82F6',
+        type,
+        sortOrder: nextSortOrder,
         isActive: true,
       },
-    });
-
-    // Registrar el cambio para auditoría
-    await prisma.categoryChange.create({
-      data: {
-        categoryId: category.id,
-        field: 'created',
-        oldValue: null,
-        newValue: JSON.stringify(category),
-        userId: createdBy,
-      },
+      include: {
+        _count: {
+          select: { products: true }
+        }
+      }
     });
 
     return NextResponse.json(category, { status: 201 });

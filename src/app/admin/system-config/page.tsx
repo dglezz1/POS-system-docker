@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Save, Building2, Palette, DollarSign, Settings, Users, Bell, Shield, BarChart3 } from 'lucide-react'
+import Link from 'next/link'
+import { Save, Building2, Palette, DollarSign, Settings, Users, Bell, Shield, BarChart3, ArrowLeft } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Header from '@/components/Header'
 import { useSystemConfig } from '@/contexts/SystemConfigContext'
@@ -177,23 +178,37 @@ export default function SystemConfigPage() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Header />
         <div className="container mx-auto px-6 py-8">
-          <div className="mb-8 flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                Configuración del Sistema
-              </h1>
-              <p className="text-gray-600 dark:text-gray-300">
-                Personaliza el comportamiento y apariencia del sistema
-              </p>
+          <div className="mb-8">
+            {/* Botón de regreso */}
+            <div className="mb-6">
+              <Link 
+                href="/admin" 
+                className="flex items-center px-4 py-2 text-gray-600 hover:text-white hover:bg-blue-600 rounded-lg transition-all duration-200 border border-gray-300 hover:border-blue-600 w-fit"
+              >
+                <ArrowLeft className="w-5 h-5 mr-2" />
+                Volver al Panel Admin
+              </Link>
             </div>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="btn-primary flex items-center space-x-2"
-            >
-              <Save className="w-4 h-4" />
-              <span>{saving ? 'Guardando...' : 'Guardar Cambios'}</span>
-            </button>
+            
+            {/* Header */}
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                  Configuración del Sistema
+                </h1>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Personaliza el comportamiento y apariencia del sistema
+                </p>
+              </div>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="btn-primary flex items-center space-x-2"
+              >
+                <Save className="w-4 h-4" />
+                <span>{saving ? 'Guardando...' : 'Guardar Cambios'}</span>
+              </button>
+            </div>
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">

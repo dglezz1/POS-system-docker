@@ -30,6 +30,13 @@ import {
   Calendar
 } from 'lucide-react'
 
+interface Category {
+  id: string
+  name: string
+  color: string
+  type: 'VITRINA' | 'CAKE_BAR'
+}
+
 interface Product {
   id: number
   name: string
@@ -38,6 +45,8 @@ interface Product {
   type: string
   isActive: boolean
   isService: boolean
+  category: Category | null
+  categoryId: string | null
 }
 
 interface CakeBarOption {
@@ -118,6 +127,8 @@ function CakeBarPOSContent() {
   
   // Estados principales
   const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [selectedCategory, setSelectedCategory] = useState<string>('')
   const [options, setOptions] = useState<Record<string, CakeBarOption[] | Record<string, CakeBarOption[]>>>({})
   const [orders, setOrders] = useState<CakeBarOrder[]>([])
   const [loading, setLoading] = useState(true)
@@ -175,10 +186,20 @@ function CakeBarPOSContent() {
 
   const loadProducts = async () => {
     try {
-      const response = await fetch('/api/products?type=CAKE_BAR')
-      if (response.ok) {
-        const data = await response.json()
+      const [productsRes, categoriesRes] = await Promise.all([
+        fetch('/api/products?type=CAKE_BAR', { credentials: 'include' }),
+        fetch('/api/categories?type=CAKE_BAR', { credentials: 'include' })
+      ])
+      
+      if (productsRes.ok) {
+        const data = await productsRes.json()
         setProducts(data.filter((p: Product) => p.isActive))
+      }
+
+      if (categoriesRes.ok) {
+        const categoriesData = await categoriesRes.json()
+        const cakeBarCategories = categoriesData.filter((cat: Category) => cat.type === 'CAKE_BAR')
+        setCategories(cakeBarCategories)
       }
     } catch (error) {
       console.error('Error loading products:', error)
@@ -975,13 +996,36 @@ function CakeBarPOSContent() {
             </div>
             
             <div className="p-6 space-y-6">
+              {/* Filtro de Categorías */}
+              {categories.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Filtrar por Categoría
+                  </label>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  >
+                    <option value="">🎂 Todas las categorías</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.name}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* Selección de Producto */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Producto Base
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {products.map(product => (
+                  {products
+                    .filter(product => !selectedCategory || product.category?.name === selectedCategory)
+                    .map(product => (
                     <button
                       key={product.id}
                       onClick={() => setSelectedProduct(product)}
@@ -992,6 +1036,14 @@ function CakeBarPOSContent() {
                       }`}
                     >
                       <h4 className="font-medium text-gray-900">{product.name}</h4>
+                      {product.category && (
+                        <span 
+                          className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white mt-1"
+                          style={{ backgroundColor: product.category.color }}
+                        >
+                          {product.category.name}
+                        </span>
+                      )}
                       {product.description && (
                         <p className="text-sm text-gray-600 mt-1">{product.description}</p>
                       )}
