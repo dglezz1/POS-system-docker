@@ -28,6 +28,7 @@ COPY src/ ./src/
 COPY public/ ./public/
 COPY setup-system-config.js ./
 COPY setup-default-credentials.js ./
+COPY setup-railway-config.js ./
 
 # Generar Prisma Client
 RUN npx prisma generate
@@ -64,6 +65,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/setup-system-config.js ./
 COPY --from=builder --chown=nextjs:nodejs /app/setup-default-credentials.js ./
+COPY --from=builder --chown=nextjs:nodejs /app/setup-railway-config.js ./
 
 # Crear directorio para uploads con permisos
 RUN mkdir -p ./public/uploads && chown -R nextjs:nodejs ./public/uploads
@@ -84,9 +86,14 @@ echo "📊 Configurando base de datos..."
 # Ejecutar migraciones de Prisma
 npx prisma migrate deploy
 
-# Configurar credenciales por defecto
-echo "🔐 Configurando credenciales por defecto..."
-node setup-default-credentials.js
+# Detectar entorno y configurar apropiadamente
+if [ ! -z "\$RAILWAY_ENVIRONMENT" ] || [ ! -z "\$RAILWAY_PROJECT_ID" ]; then
+    echo "🚆 Entorno Railway detectado - Configurando para producción..."
+    node setup-railway-config.js
+else
+    echo "🔐 Configurando credenciales por defecto..."
+    node setup-default-credentials.js
+fi
 
 # Configurar sistema inicial
 echo "⚙️ Configurando sistema inicial..."
