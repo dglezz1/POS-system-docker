@@ -143,6 +143,7 @@ export async function POST(request: NextRequest) {
       price,
       stock,
       category,
+      categoryId,
       type,
       barcode,
       isService = false,
@@ -155,11 +156,18 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validaciones
-    if (!name || !price || stock === undefined || !category) {
+    if (!name || !price || stock === undefined) {
       return NextResponse.json(
         { error: 'Faltan campos requeridos' },
         { status: 400 }
       );
+    }
+
+    // Determinar categoryId si no se proporciona
+    let finalCategoryId = categoryId;
+    if (!finalCategoryId) {
+      const productType = type || 'VITRINA';
+      finalCategoryId = productType === 'CAKE_BAR' ? 'default-category-cakebar' : 'default-category-vitrina';
     }
 
     // Determinar el tipo automáticamente basado en la categoría
@@ -191,7 +199,8 @@ export async function POST(request: NextRequest) {
         description,
         price: parseFloat(price),
         stock: isService ? 0 : parseInt(stock),
-        category,
+        category: category || 'Sin Categoría', // Mantener por compatibilidad
+        categoryId: finalCategoryId,
         type: finalType,
         barcode: finalBarcode,
         isService,

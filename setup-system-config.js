@@ -85,6 +85,49 @@ async function createInitialSystemConfig() {
     }
 
     console.log('✅ Configuración inicial del sistema creada exitosamente');
+
+    // Crear categoría por defecto "Sin Categoría"
+    console.log('📂 Creando categoría por defecto...');
+    await prisma.category.upsert({
+      where: { 
+        name_type: {
+          name: 'Sin Categoría',
+          type: 'VITRINA'
+        }
+      },
+      update: {},
+      create: {
+        id: 'default-category-vitrina',
+        name: 'Sin Categoría',
+        color: '#6B7280',
+        type: 'VITRINA',
+        isActive: true,
+        sortOrder: 0,
+        createdBy: updatedBy
+      }
+    });
+
+    // También crear para CAKE_BAR
+    await prisma.category.upsert({
+      where: {
+        name_type: {
+          name: 'Sin Categoría',
+          type: 'CAKE_BAR'
+        }
+      },
+      update: {},
+      create: {
+        id: 'default-category-cakebar',
+        name: 'Sin Categoría', 
+        color: '#6B7280',
+        type: 'CAKE_BAR',
+        isActive: true,
+        sortOrder: 0,
+        createdBy: updatedBy
+      }
+    });
+
+    console.log('✅ Categorías por defecto creadas');
     
     // Mostrar configuración creada
     const allConfigs = await prisma.systemConfig.findMany();

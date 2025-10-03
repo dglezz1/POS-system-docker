@@ -123,9 +123,7 @@ function NewProductContent() {
       newErrors.price = 'El precio debe ser mayor a 0';
     }
 
-    if (!formData.categoryId) {
-      newErrors.category = 'La categoría es requerida';
-    }
+    // La categoría ya no es obligatoria - se usará "Sin Categoría" por defecto
 
     // Solo validar stock si no es un servicio
     if (!formData.isService) {
@@ -162,6 +160,10 @@ function NewProductContent() {
     setIsLoading(true);
 
     try {
+      // Si no se selecciona categoría, usar la categoría por defecto
+      const categoryId = formData.categoryId || 
+        (formData.type === 'CAKE_BAR' ? 'default-category-cakebar' : 'default-category-vitrina');
+
       const response = await fetch('/api/products', {
         method: 'POST',
         headers: {
@@ -169,6 +171,7 @@ function NewProductContent() {
         },
         body: JSON.stringify({
           ...formData,
+          categoryId: categoryId,
           price: parseFloat(formData.price),
           stock: formData.isService ? 0 : parseInt(formData.stock),
           minStock: formData.isService ? 0 : parseInt(formData.minStock),
@@ -287,7 +290,7 @@ function NewProductContent() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Categoría *
+                Categoría
               </label>
               <select
                 value={formData.categoryId}
@@ -296,13 +299,14 @@ function NewProductContent() {
                   errors.categoryId ? 'border-red-500' : 'border-gray-300'
                 }`}
               >
-                <option value="">Sin Categoría</option>
+                <option value="">Sin Categoría (por defecto)</option>
                 {categories.map(category => (
                   <option key={category.id} value={category.id}>
                     {category.name}
                   </option>
                 ))}
               </select>
+              <p className="text-gray-500 text-sm mt-1">Si no seleccionas una categoría, se asignará automáticamente a "Sin Categoría"</p>
               {errors.category && <p className="text-red-500 text-sm mt-1">{errors.category}</p>}
             </div>
 
