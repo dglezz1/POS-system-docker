@@ -63,6 +63,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Copiar esquema de Prisma y configuración
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder --chown=nextjs:nodejs /app/setup-system-config.js ./
 COPY --from=builder --chown=nextjs:nodejs /app/setup-default-credentials.js ./
 COPY --from=builder --chown=nextjs:nodejs /app/setup-railway-config.js ./
@@ -73,34 +75,65 @@ RUN mkdir -p ./public/uploads && chown -R nextjs:nodejs ./public/uploads
 USER nextjs
 
 EXPOSE 3000
-
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Crear script de inicio
-COPY --chown=nextjs:nodejs <<EOF /app/start.sh
+# Crear script de inicio optimizado para base de datos nueva
+COPY --chown=nextjs:nodejs <<'EOF' /app/start.sh
 #!/bin/sh
+set -e
+
 echo "🚀 Iniciando Sistema de Gestión de Panadería..."
 echo "📊 Configurando base de datos..."
 
-# Ejecutar migraciones de Prisma
-npx prisma migrate deploy
+# Verificar que DATABASE_URL esté configurada
+if [ -z "$DATABASE_URL" ]; then
+    echo "❌ ERROR: DATABASE_URL no está configurada"
+    exit 1
+fi
+
+echo "🔄 Generando Prisma Client..."
+npx prisma generate
+
+echo "🔄 Aplicando migraciones de base de datos..."
+# En base de datos nueva, esto debería funcionar sin problemas
+if ! npx prisma migrate deploy; then
+    echo "❌ Error aplicando migraciones"
+    echo "📋 Intentando diagnóstico..."
+    npx prisma migrate status || true
+    
+    # Si hay migraciones pendientes en desarrollo, aplicarlas
+    if [ "$ALLOW_DB_PUSH" = "true" ]; then
+        echo "🔧 Usando db push como alternativa..."
+        npx prisma db push --force-reset
+    else
+        exit 1
+    fi
+fi
+
+echo "✅ Migraciones aplicadas correctamente"
 
 # Detectar entorno y configurar apropiadamente
-if [ ! -z "\$RAILWAY_ENVIRONMENT" ] || [ ! -z "\$RAILWAY_PROJECT_ID" ]; then
+if [ ! -z "$RAILWAY_ENVIRONMENT" ] || [ ! -z "$RAILWAY_PROJECT_ID" ]; then
     echo "🚆 Entorno Railway detectado - Configurando para producción..."
-    node setup-railway-config.js
+    if ! node setup-railway-config.js; then
+        echo "⚠️ Error en configuración Railway (continuando...)"
+    fi
 else
     echo "🔐 Configurando credenciales por defecto..."
-    node setup-default-credentials.js
+    if ! node setup-default-credentials.js; then
+        echo "⚠️ Error en credenciales por defecto (continuando...)"
+    fi
 fi
 
 # Configurar sistema inicial
 echo "⚙️ Configurando sistema inicial..."
-node setup-system-config.js
+if ! node setup-system-config.js; then
+    echo "⚠️ Error en configuración del sistema (continuando...)"
+fi
 
 echo "✅ Iniciando servidor..."
-node server.js
+exec node server.js
 EOF
 
 RUN chmod +x /app/start.sh
